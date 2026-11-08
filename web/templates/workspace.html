@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Ask questions about a PDF and inspect the source passages behind each answer.">
+  <title>Folio · Document Workspace</title>
+  <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/static/app.css">
+  <script src="/static/app.js" defer></script>
+  <script src="/static/documents.js" defer></script>
+  <script src="/static/chat.js" defer></script>
+</head>
+<body>
+  {% set cleared = checkpoints | selectattr("status", "equalto", "done") | list %}{% set current = cleared[-1] %}{% set next_quest = checkpoints | selectattr("status", "equalto", "next") | list %}
+  <a class="skip-link" href="#main">Skip navigation</a>
+  <aside class="sidebar" aria-label="Main navigation">
+    <a class="brand" href="/" aria-label="Folio home"><span class="brand-mark">f.</span> folio<span class="brand-dot">/</span></a>
+    <div class="workspace-label"><span class="workspace-avatar">P</span><div>Personal workspace<small>Local development</small></div><span class="local-dot" title="Local workspace"></span></div>
+    <p class="nav-label">WORKSPACE</p>
+    <nav>
+      <button class="nav-item is-active" data-view="workspace" aria-controls="workspace-view" aria-pressed="true"><span aria-hidden="true">▧</span> Document studio <span class="nav-tag">01</span></button>
+      <button class="nav-item" data-view="campaign" aria-controls="campaign-view" aria-pressed="false"><span aria-hidden="true">◇</span> Build campaign <span class="nav-count">{{ campaign.completed }}/{{ campaign.total }}</span></button>
+    </nav>
+    <div class="sidebar-note"><span class="eyebrow">READ WITH SOURCES</span><h3>Your document.<br>Your questions.</h3><p>Documents, conversations, and source passages in one workspace.</p><div class="note-art" aria-hidden="true"><span></span><span></span><span></span></div></div>
+    <div class="sidebar-bottom"><div class="server-status" role="status"><span id="health-dot" class="status-dot"></span><span id="health-label">Checking server…</span></div><div class="profile"><span class="profile-avatar">Y</span><div>Your workspace<small>Self-hosted prototype</small></div></div></div>
+  </aside>
+
+  <div class="app-shell">
+    <header class="topbar"><div class="breadcrumbs">Workspace <span>/</span> <strong id="page-label">Document studio</strong></div><div class="topbar-right"><span class="version-badge">BUILD 0.8.0</span><span class="checkpoint-indicator"><span></span> Checkpoint {{ '%02d'|format(campaign.completed) }} · {{ current.title }}</span></div></header>
+    <main id="main" tabindex="-1">
+      <section id="workspace-view" aria-labelledby="studio-title">
+        <div class="page-heading"><div><p class="eyebrow">YOUR DOCUMENTS. ANSWERS YOU CAN TRACE.</p><h1 id="studio-title">Clarity starts here<span>.</span></h1><p class="page-description">Read a document, ask a question, and check the evidence behind the answer.</p></div><a class="text-link" href="#campaign" data-open-campaign>View implementation status <span aria-hidden="true">↗</span></a></div>
+
+        <div class="milestone-banner"><span class="milestone-icon" aria-hidden="true">◇</span><div><strong>{{ current.title }} · {{ current.subtitle }}</strong><p>{{ current.description }}</p></div><button class="button button-small button-outline" data-view="campaign" aria-controls="campaign-view">{{ campaign.completed }} / {{ campaign.total }} checkpoints <span aria-hidden="true">→</span></button></div>
+
+        <div class="studio-grid">
+          <section class="panel document-panel" aria-labelledby="documents-title">
+            <div class="panel-header"><h2 id="documents-title">Your documents <span id="document-count" class="counter">0</span></h2><span class="panel-kicker">PDF WORKSPACE</span></div>
+            <div id="document-empty" class="document-empty"><div class="file-illustration" aria-hidden="true"><svg viewBox="0 0 80 90" fill="none"><path d="M18 5h30l17 17v58a5 5 0 0 1-5 5H18a5 5 0 0 1-5-5V10a5 5 0 0 1 5-5Z"/><path d="M47 5v18h18M26 40h25M26 51h25M26 62h15"/></svg><span>PDF</span></div><h3>Start with one document</h3><p>Upload a text-based PDF.<br>Up to 10 MiB · 100 pages · one file per session.</p><button id="upload-button" class="button button-primary" disabled aria-describedby="upload-note"><span aria-hidden="true">＋</span> Upload PDF</button><small id="upload-note">Preparing your session…</small></div>
+            <input type="file" id="pdf-input" accept=".pdf,application/pdf" hidden aria-label="Choose a PDF document">
+            <div id="document-details" class="document-details" hidden>
+              <span class="document-type">PDF · VALIDATED</span><h3 id="document-name"></h3>
+              <dl><div><dt>Pages</dt><dd id="document-pages"></dd></div><div><dt>Size</dt><dd id="document-size"></dd></div><div><dt>Text characters</dt><dd id="document-characters"></dd></div></dl>
+              <p id="document-warning" class="document-warning" hidden></p>
+              <section class="index-panel" aria-label="Document index"><span class="eyebrow">LOCAL KNOWLEDGE INDEX</span><h4 id="index-status" aria-live="polite">Not indexed</h4><p id="index-summary"></p><button id="index-button" class="button button-primary">Build local index</button><small>Server setup: run Ollama and <code>ollama pull bge-m3</code> if the model is missing. The download is about 1.2 GB; inference uses server RAM and CPU.</small></section>
+              <div class="document-actions"><button id="replace-button" class="button button-outline">Replace PDF</button><button id="delete-button" class="button button-danger" aria-controls="delete-confirmation" aria-expanded="false">Delete</button></div>
+              <div id="delete-confirmation" class="delete-confirmation" role="group" aria-label="Confirm document deletion" hidden><p>Delete the PDF, extracted text, and index from this session?</p><button id="confirm-delete" class="button button-danger">Delete document</button><button id="cancel-delete" class="button button-outline">Cancel</button></div><p class="replace-note">If replacement fails, the previous document and index remain active.</p>
+            </div>
+            <div id="document-feedback" class="document-feedback" role="status" aria-live="polite" hidden></div>
+            <button id="session-retry" class="button button-outline session-retry" hidden>Reconnect session</button>
+            <div class="privacy-note"><span aria-hidden="true">◇</span><p>Files and text are processed on this server. If accessed through a tunnel, uploads pass through the tunnel provider. Sessions expire after 1 hour of inactivity or a server restart. Delete your document at any time. Scanned PDFs require OCR, which is not available.</p></div>
+          </section>
+
+          <section class="panel conversation-panel" aria-labelledby="conversation-title">
+            <div class="panel-header"><h2 id="conversation-title">Ask your document</h2><span id="conversation-state" class="muted-badge" role="status" aria-live="polite">Waiting for a document</span></div>
+            <div class="history-toolbar"><span id="history-count">0/6 turns</span><label><input id="use-history" type="checkbox" checked> Use previous context</label><button id="reset-conversation" class="button button-small button-outline" aria-controls="conversation-reset-confirm" aria-expanded="false" disabled>Reset conversation</button></div>
+            <div id="conversation-reset-confirm" class="conversation-reset-confirm" hidden><p>Clear conversation history? The PDF and index will be kept.</p><button id="confirm-reset-conversation" class="button button-danger">Reset conversation</button><button id="cancel-reset-conversation" class="button button-outline">Cancel</button></div>
+            <div id="conversation-empty" class="conversation-empty"><div class="spark-icon" aria-hidden="true">≡</div><p class="eyebrow">CHECK THE SOURCE</p><h2>Good questions.<br><span>Grounded answers.</span></h2><p>Temporary history is stored in your server session and restored on reload.<br class="desktop-break"> Up to 6 turns / 48 KiB; previous questions only help identify the topic.</p><div class="suggestion-grid"><div><span aria-hidden="true">≡</span><strong>Keep the conversation going</strong><p>Check how follow-up questions are interpreted</p></div><div><span aria-hidden="true">⌕</span><strong>Evidence stays fresh</strong><p>Previous model answers are not evidence for new answers</p></div></div></div>
+            <div id="conversation-turns" class="conversation-turns" role="log" aria-label="Conversation history" hidden></div>
+            <template id="conversation-turn-template"><article class="answer-output conversation-turn"><p class="eyebrow">YOUR QUESTION</p><h3 data-role="question"></h3><p data-role="resolved" class="turn-resolved" hidden></p><p data-role="kind" class="eyebrow"></p><p data-role="reason" class="turn-resolved" hidden></p><div data-role="text" class="turn-answer-text"></div><div data-role="sources"></div><p class="answer-warning">Facts are supported by source quotes. Labeled conversions are calculated by the server with an exact trace from source values, not by the model. Check relevance before relying on the answer.</p></article></template>
+            <div id="answer-feedback" class="answer-feedback" role="status" aria-live="polite" hidden></div>
+            <div class="composer-area"><form id="chat-form"><label class="sr-only" for="question">Question about the document</label><div class="composer"><input id="question" maxlength="1500" autocomplete="off" enterkeyhint="send" placeholder="Upload a PDF and build its index first…" disabled required><button id="send-question" aria-label="Send question" disabled type="submit">↑</button></div></form><p>Local Qwen2.5 1.5B · Up to 1,500 characters · Disable context for standalone questions. History is lost when the session ends or the server restarts; it is not stored in localStorage.</p></div>
+          </section>
+        </div>
+        <footer class="page-footer"><span>Read the answer. Check the source.</span><span>FastAPI + Jinja2 <span aria-hidden="true">·</span> Local embeddings + answers</span></footer>
+      </section>
+
+      <section id="campaign-view" aria-labelledby="campaign-title" hidden>
+        <div class="page-heading"><div><p class="eyebrow">IMPLEMENTATION STATUS</p><h1 id="campaign-title">The build campaign<span>.</span></h1><p class="page-description">Each checkpoint records an implementation milestone, not a production guarantee.</p></div><span class="campaign-score">{{ campaign.completed }}<span>/ {{ campaign.total }} cleared</span></span></div>
+        <div class="campaign-intro"><div><span class="eyebrow">CURRENT MILESTONE</span><h2>{{ current.id }} / {{ current.title }}</h2><p>{{ current.description }} Milestone counts describe implementation progress, not answer accuracy.</p></div><div class="campaign-meter"><meter min="0" max="{{ campaign.total }}" value="{{ campaign.completed }}" aria-label="Completed checkpoints">{{ campaign.completed }} of {{ campaign.total }}</meter><span>{% if next_quest %}Next milestone: {{ next_quest[0].title }} · release gates remain{% else %}All checkpoints completed · release gates remain{% endif %}</span></div></div>
+        <div id="quality-gate" class="quality-gate" role="note"><strong>Answer quality has not passed production validation.</strong><p>{% for c in checkpoints if c.id == "06" %}{{ c.description }}{% endfor %} Results come from small synthetic datasets, not independent human validation or a comprehensive security assessment. See <code>docs/RELEASE-REVIEW.md</code> for limitations.</p></div>
+        <ol class="checkpoint-grid">
+          {% for checkpoint in checkpoints %}
+          <li class="checkpoint-card checkpoint-{{ checkpoint.status }}"><div class="checkpoint-card-top"><span class="checkpoint-number">{{ checkpoint.id }}</span><span class="quest-status">{% if checkpoint.status == 'done' %}✓ CLEARED{% elif checkpoint.status == 'next' %}↗ NEXT QUEST{% else %}LOCKED{% endif %}</span></div><h2>{{ checkpoint.title }}</h2><h3>{{ checkpoint.subtitle }}</h3><p>{{ checkpoint.description }}</p><ul>{% for criterion in checkpoint.criteria %}<li><span aria-hidden="true">{% if checkpoint.status == 'done' %}✓{% else %}○{% endif %}</span>{{ criterion }}</li>{% endfor %}</ul></li>
+          {% endfor %}
+        </ol>
+        <p class="campaign-footnote">Completed checkpoints do not establish model quality. Security, capacity, and independent human validation remain release requirements. See <code>docs/RELEASE-REVIEW.md</code>.</p>
+      </section>
+      <noscript><p class="noscript-note">JavaScript is disabled. Enable it to upload documents, ask questions, navigate views, and check server status.</p></noscript>
+    </main>
+  </div>
+</body>
+</html>

@@ -1,0 +1,51 @@
+# Offline acceptance pipeline for Folio.
+#
+# Scope (honest): this workflow installs the pinned lockfile, checks dependency
+# consistency, runs the full offline unittest suite (no Ollama, no models, no
+# network calls from tests), and boots the server to verify /api/health.
+# The browser suites in tests/browser_*.js need playwright-cli plus the local
+# Ollama models and therefore run on a development machine, not here.
+#
+# Installs the same lockfile on Python 3.14 for both supported CI platforms.
+name: ci
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  offline-tests:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+          cache: pip
+          cache-dependency-path: requirements.lock.txt
+
+      - name: Install pinned dependencies
+        run: python -m pip install -r requirements.lock.txt
+
+      - name: Dependency consistency
+        run: python -m pip check
+
+      - name: Offline test suite
+        run: python -m unittest discover -s tests -q
+
+      - name: Boot server and verify health
+        shell: bash
+        run: |
+          python -m uvicorn web.main:app --host 127.0.0.1 --port 8000 &
+          for attempt in 1 2 3 4 5 6 7 8 9 10; do
+            if curl -fsS http://127.0.0.1:8000/api/health; then exit 0; fi
+            sleep 2
+          done
+          echo "server never became healthy" >&2
+          exit 1

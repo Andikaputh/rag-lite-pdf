@@ -1,0 +1,13 @@
+venv/
+__pycache__/
+.chroma/
+.env
+*.pyc
+venv.backup-*/
+
+# Local tooling and generated data.
+.tools/
+.playwright-cli/
+.data/
+.venv/
+evals/results/
