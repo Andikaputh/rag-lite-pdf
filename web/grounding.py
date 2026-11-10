@@ -71,20 +71,67 @@ def unit_facets(text):
     return facets
 
 
+_DIRECTIVE = re.compile(
+    r"\b(abaikan|ignore|bocorkan|reveal)\b.*\b(aturan|rules?|instructions?|prompt|system|sistem)\b"
+    r"|\b(jawab|reply|respond)\b.*\b(hanya|only|tanpa kutipan|without citations?)\b",
+    re.IGNORECASE,
+)
+_HEADING = re.compile(
+    r"^(chapter|section|part|appendix|table|figure|bagian|bab|lampiran|tabel|gambar)\b",
+    re.IGNORECASE,
+)
+# Only used to rescue short lines. Longer content sentences are accepted without
+# a verb list so ordinary verbs such as "shows", "receives" or "memiliki" are not
+# discarded.
+_VERB_CUE = re.compile(
+    r"\b(is|are|was|were|be|been|has|have|had|can|could|may|might|must|will|would|should|"
+    r"do|does|did|receives?|gets?|provides?|offers?|grants?|includes?|contains?|covers?|"
+    r"pays?|reimburses?|entitles?|allows?|permits?|prohibits?|requires?|uses?|keeps?|"
+    r"maintains?|sets?|limits?|starts?|begins?|ends?|expires?|lasts?|opens?|closes?|"
+    r"costs?|ranges?|depends?|applies?|consists?|holds?|earns?|accrues?|qualifies?|"
+    r"reports?|adalah|berlaku|menerima|memiliki|mendapat|memberikan|menyediakan|"
+    r"menawarkan|mencakup|termasuk|berhak|membayar|mengganti|mengatur|menetapkan|"
+    r"membatasi|memakai|menggunakan|menyimpan|menjaga|memulai|berakhir|berlangsung|"
+    r"tergantung|dikenai|dikenakan|ditanggung|tersedia|harus)\b",
+    re.IGNORECASE,
+)
+
+
 def is_fact_unit(text):
-    if matches(r"\b(abaikan|ignore|bocorkan|reveal)\b.*\b(aturan|rules?|instructions?|prompt|system|sistem)\b", text) or matches(r"\b(jawab|reply|respond)\b.*\b(hanya|only|tanpa kutipan|without citations?)\b", text):
+    stripped = text.strip()
+    if not stripped or _DIRECTIVE.search(stripped):
         return False
-    # Avoid presenting document titles as evidence of an unstated fact. This is
-    # intentionally conservative and can miss tables/fragments/long sentences.
-    return matches(r"\b(is|are|lasts?|begins?|starts?|ends?|opens?|closes?|expires?|contains?|requires?|retains?|stores?|permits?|prohibits?|must|may|costs?|available|covered|not|adalah|berlaku|mendapat|tersedia|harus|ditanggung|tidak|biaya)\b|[\w.+-]+@[\w.-]+|\d+\s*(bulan|months?|tahun|years?|hari|days?)\b", text)
+    if re.search(r"\.{3,}\s*\d+\s*$", stripped):
+        return False
+    words = re.findall(r"[^\W\d_]+", stripped)
+    if len(words) < 3:
+        return False
+    # Heading words only reject short labels or numbered headings; a sentence
+    # such as "Part of the training budget is reimbursed." remains evidence.
+    if _HEADING.match(stripped) and (len(words) <= 4 or re.match(r"^\S+\s+\d+\b", stripped)):
+        return False
+    # A short line needs a number, an address, or a verb cue to look like a fact.
+    # This rejects titles and labels without requiring a narrow verb allowlist
+    # for full sentences.
+    if len(words) < 7 and not re.search(r"\d|@", stripped) and not _VERB_CUE.search(stripped):
+        return False
+    return True
+
+
+def _sentences(text):
+    matches = [match.group().strip() for match in re.finditer(r".+?(?:[.!?](?=\s|$)|$)", text, re.DOTALL)]
+    if len(matches) == 1 and len(matches[0]) > 400 and "\n" in matches[0]:
+        # Punctuation-free table/list pages arrive as one long run; recover the
+        # rows instead of dropping the whole page as an oversized unit.
+        return [line.strip() for line in matches[0].splitlines() if line.strip()]
+    return matches
 
 
 def evidence_units(question, sources):
     required = requested_facets(question)
     units, seen = [], set()
     for source in sources:
-        for match in re.finditer(r".+?(?:[.!?](?=\s|$)|$)", source["text"], re.DOTALL):
-            text = match.group().strip()
+        for text in _sentences(source["text"]):
             identity = (source["source_id"], text)
             if identity in seen or not 12 <= len(text) <= 400 or not is_fact_unit(text):
                 continue

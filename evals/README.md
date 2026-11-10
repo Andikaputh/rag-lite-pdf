@@ -21,6 +21,10 @@ The runner follows `web/answer-policy.json` unless `--answer-strategy` is specif
 Use `--dataset` to select an explicitly reviewed synthetic JSON dataset. See
 `python -m evals.run --help` for options. Do not use personal data as a fixture.
 
+`datasets/rag-v5.json` adds general-domain English and Indonesian handbook cases,
+including a punctuation-free table page. It is a regression set for evidence-unit
+filtering, not a broader accuracy claim.
+
 For a controlled comparison, run baseline and candidate with the same dataset,
 case IDs, model digests, code fingerprint, seeds, and environment. Change only
 the parameter under study, then compare the two JSON reports:

@@ -1,0 +1,294 @@
+{
+  "schema_version": 1,
+  "synthetic": true,
+  "version": "5.0.0",
+  "documents": [
+    {
+      "id": "northwind",
+      "pages": [
+        "Northwind Systems employee handbook. This edition replaces all earlier versions.",
+        "Working hours are 09:00 to 17:00, Monday to Friday. Employees may work remotely up to three days per week with manager approval. Core collaboration hours are 10:00 to 15:00.",
+        "Employees receive 18 days of paid annual leave each year. Unused leave may be carried over to the next year, up to a maximum of five days. Sick leave is separate and requires a medical certificate after two consecutive days.",
+        "Parental leave is 16 weeks for the primary caregiver and 6 weeks for the secondary caregiver. Compassionate leave is up to five days for the death of an immediate family member.",
+        "Expense claims must be submitted within 30 days of the purchase date. Receipts are required for any single expense above 50 USD. Meals during approved travel are reimbursed up to 40 USD per day.",
+        "Each new employee receives a home office allowance of 500 USD. Laptops must use full-disk encryption and screen locks of five minutes or less. Personal USB storage devices are not permitted.",
+        "Performance reviews are held twice per year, in June and December. Each employee has an annual training budget of 1,200 USD. Training requests above that amount require director approval.",
+        "Employees who resign must give four weeks of written notice. The company may terminate employment with pay in lieu of notice. Exit interviews are scheduled within the final week."
+      ]
+    },
+    {
+      "id": "sinar",
+      "pages": [
+        "Buku panduan karyawan PT Sinar Nusantara. Edisi ini menggantikan semua versi sebelumnya.",
+        "Jam kerja adalah 09.00 sampai 17.00, Senin sampai Jumat. Karyawan dapat bekerja dari rumah maksimal tiga hari per minggu dengan persetujuan manajer.",
+        "Karyawan menerima 18 hari cuti tahunan berbayar setiap tahun. Cuti yang tidak terpakai dapat dibawa ke tahun berikutnya maksimal lima hari.",
+        "Setiap karyawan baru menerima tunjangan rumah sebesar 500 USD. Laptop wajib memakai enkripsi disk penuh dan kunci layar maksimal lima menit.",
+        "Klaim biaya harus dikirim dalam 30 hari sejak tanggal pembelian. Struk wajib dilampirkan untuk setiap pengeluaran di atas 50 USD.",
+        "Review kinerja diadakan dua kali setahun, pada bulan Juni dan Desember. Setiap karyawan memiliki anggaran pelatihan tahunan sebesar 1.200 USD.",
+        "RINGKASAN TUNJANGAN\nCuti sakit 12 hari\nCuti melahirkan 16 minggu\nKeterangan tambahan tanpa tanda baca Keterangan tambahan tanpa tanda baca Keterangan tambahan tanpa tanda baca Keterangan tambahan tanpa tanda baca Keterangan tambahan tanpa tanda baca Keterangan tambahan tanpa tanda baca Keterangan tambahan tanpa tanda baca Keterangan tambahan tanpa tanda baca Keterangan tambahan tanpa tanda baca Keterangan tambahan tanpa tanda baca Keterangan tambahan tanpa tanda baca Keterangan tambahan tanpa tanda baca Keterangan tambahan tanpa tanda baca Keterangan tambahan tanpa tanda baca "
+      ]
+    }
+  ],
+  "cases": [
+    {
+      "id": "dev-en-leave",
+      "split": "dev",
+      "document": "northwind",
+      "language": "en",
+      "tags": [
+        "fact",
+        "number",
+        "general_domain"
+      ],
+      "question": "How many days of annual leave do employees get?",
+      "expected_status": "answered",
+      "evidence": [
+        {
+          "page": 3,
+          "quote": "Employees receive 18 days of paid annual leave each year."
+        }
+      ],
+      "contains_any": [
+        [
+          "18"
+        ],
+        [
+          "days",
+          "hari"
+        ]
+      ]
+    },
+    {
+      "id": "dev-en-allowance",
+      "split": "dev",
+      "document": "northwind",
+      "language": "en",
+      "tags": [
+        "fact",
+        "number",
+        "general_domain",
+        "ordinary_verb"
+      ],
+      "question": "How much is the home office allowance?",
+      "expected_status": "answered",
+      "evidence": [
+        {
+          "page": 6,
+          "quote": "Each new employee receives a home office allowance of 500 USD."
+        }
+      ],
+      "contains_any": [
+        [
+          "500"
+        ],
+        [
+          "allowance",
+          "tunjangan"
+        ]
+      ]
+    },
+    {
+      "id": "dev-en-training",
+      "split": "dev",
+      "document": "northwind",
+      "language": "en",
+      "tags": [
+        "fact",
+        "number",
+        "general_domain",
+        "ordinary_verb"
+      ],
+      "question": "What is the annual training budget?",
+      "expected_status": "answered",
+      "evidence": [
+        {
+          "page": 7,
+          "quote": "Each employee has an annual training budget of 1,200 USD."
+        }
+      ],
+      "contains_any": [
+        [
+          "1,200",
+          "1200"
+        ],
+        [
+          "training",
+          "pelatihan"
+        ]
+      ]
+    },
+    {
+      "id": "dev-en-reviews",
+      "split": "dev",
+      "document": "northwind",
+      "language": "en",
+      "tags": [
+        "fact",
+        "general_domain"
+      ],
+      "question": "How often are performance reviews held?",
+      "expected_status": "answered",
+      "evidence": [
+        {
+          "page": 7,
+          "quote": "Performance reviews are held twice per year, in June and December."
+        }
+      ],
+      "contains_any": [
+        [
+          "twice",
+          "two"
+        ],
+        [
+          "reviews",
+          "review"
+        ]
+      ]
+    },
+    {
+      "id": "dev-en-absent",
+      "split": "dev",
+      "document": "northwind",
+      "language": "en",
+      "tags": [
+        "absent",
+        "general_domain"
+      ],
+      "question": "What is the company stock ticker symbol?",
+      "expected_status": "abstained",
+      "evidence": [],
+      "contains_any": []
+    },
+    {
+      "id": "dev-id-cuti",
+      "split": "dev",
+      "document": "sinar",
+      "language": "id",
+      "tags": [
+        "fact",
+        "number",
+        "general_domain",
+        "ordinary_verb"
+      ],
+      "question": "Berapa hari cuti tahunan yang diterima karyawan?",
+      "expected_status": "answered",
+      "evidence": [
+        {
+          "page": 3,
+          "quote": "Karyawan menerima 18 hari cuti tahunan berbayar setiap tahun."
+        }
+      ],
+      "contains_any": [
+        [
+          "18"
+        ],
+        [
+          "cuti",
+          "leave"
+        ]
+      ]
+    },
+    {
+      "id": "dev-id-tunjangan",
+      "split": "dev",
+      "document": "sinar",
+      "language": "id",
+      "tags": [
+        "fact",
+        "number",
+        "general_domain",
+        "ordinary_verb"
+      ],
+      "question": "Berapa tunjangan rumah untuk karyawan baru?",
+      "expected_status": "answered",
+      "evidence": [
+        {
+          "page": 4,
+          "quote": "Setiap karyawan baru menerima tunjangan rumah sebesar 500 USD."
+        }
+      ],
+      "contains_any": [
+        [
+          "500"
+        ],
+        [
+          "tunjangan",
+          "allowance"
+        ]
+      ]
+    },
+    {
+      "id": "dev-id-pelatihan",
+      "split": "dev",
+      "document": "sinar",
+      "language": "id",
+      "tags": [
+        "fact",
+        "number",
+        "general_domain",
+        "ordinary_verb"
+      ],
+      "question": "Berapa anggaran pelatihan tahunan?",
+      "expected_status": "answered",
+      "evidence": [
+        {
+          "page": 6,
+          "quote": "Setiap karyawan memiliki anggaran pelatihan tahunan sebesar 1.200 USD."
+        }
+      ],
+      "contains_any": [
+        [
+          "1.200",
+          "1200"
+        ],
+        [
+          "pelatihan",
+          "training"
+        ]
+      ]
+    },
+    {
+      "id": "dev-id-tabel",
+      "split": "dev",
+      "document": "sinar",
+      "language": "id",
+      "tags": [
+        "fact",
+        "number",
+        "table",
+        "general_domain"
+      ],
+      "question": "Berapa cuti melahirkan pada tabel ringkasan?",
+      "expected_status": "answered",
+      "evidence": [
+        {
+          "page": 7,
+          "quote": "Cuti melahirkan 16 minggu"
+        }
+      ],
+      "contains_any": [
+        [
+          "16"
+        ],
+        [
+          "melahirkan",
+          "maternity"
+        ]
+      ]
+    },
+    {
+      "id": "dev-id-absent",
+      "split": "dev",
+      "document": "sinar",
+      "language": "id",
+      "tags": [
+        "absent",
+        "general_domain"
+      ],
+      "question": "Berapa harga saham perusahaan?",
+      "expected_status": "abstained",
+      "evidence": [],
+      "contains_any": []
+    }
+  ]
+}
