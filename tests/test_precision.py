@@ -48,6 +48,12 @@ class ExactConversionTests(unittest.TestCase):
         self.assertIsNone(error)
         self.assertEqual(result, claims)
 
+    def test_literal_days_question_is_not_forced_into_conversion(self):
+        quote = "Employees may work remotely for up to three days each week for six months."
+        result, error = derive_duration("How many days per week can employees work remotely?", [literal(quote)])
+        self.assertIsNone(error)
+        self.assertEqual(result[0]["text"], quote)
+
     def test_forged_math_quote_or_proof_never_bypasses_numeric_guard(self):
         question = "How many years is the warranty?"
         quote = "The warranty lasts 36 months."
@@ -95,6 +101,20 @@ class FocusAndLanguageTests(unittest.TestCase):
     def test_shared_warranty_word_does_not_keep_other_tier(self):
         claims = [literal("The standard warranty lasts 18 months."), literal("The extended warranty lasts 2 years.")]
         self.assertEqual(focus_claims("How many months is the extended warranty?", claims), claims[1:])
+
+    def test_selection_refinement_prefers_result_and_label_matches(self):
+        selector = FocusedEvidenceSelector()
+        abstract = "The study examines the relationship between sleep duration and memory consolidation."
+        result = "The study found that sleep improves memory consolidation in healthy adults."
+        units = [{"id": "E0", "source_id": "C0", "text": abstract},
+                 {"id": "E1", "source_id": "C0", "text": result}]
+        refined = selector.refine_selection("What did the study find about sleep and memory?", [literal(abstract)], units)
+        self.assertEqual(refined[0]["text"], result)
+
+        units = [{"id": "E0", "source_id": "C0", "text": "Operating temperature range 0 to 45 C."},
+                 {"id": "E1", "source_id": "C0", "text": "Weight 1.2 kg."}]
+        refined = selector.refine_selection("What is the weight?", [literal("Operating temperature range 0 to 45 C.")], units)
+        self.assertEqual(refined[0]["text"], "Weight 1.2 kg.")
 
     def test_opening_time_cannot_answer_founder_question(self):
         selector = FocusedEvidenceSelector()

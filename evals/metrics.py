@@ -27,11 +27,12 @@ def score_case(case, response, retrieved, pages, *, history_count=None, setup_ok
     claims = response.get("claims", [])
     derivations = [check_derivation(claim, citations) for claim in claims if "derivation" in claim]
     retrieved_gold = [i for i, e in enumerate(gold) if any(c["page"] == e["page"] and normalize(e["quote"]) in normalize(c["text"]) for c in candidates)]
+    retrieved_gold_at_3 = [i for i, e in enumerate(gold) if any(c["page"] == e["page"] and normalize(e["quote"]) in normalize(c["text"]) for c in candidates[:3])]
     checks = []
     for citation in citations:
         page, quote = citation.get("page"), citation.get("quote")
-        in_page = type(page) is int and 1 <= page <= len(pages) and isinstance(quote, str) and bool(quote.strip()) and quote in pages[page - 1]["text"]
-        in_chunk = any(c["page"] == page and c["chunk_id"] == citation.get("chunk_id") and isinstance(quote, str) and quote in c["text"] for c in candidates)
+        in_page = type(page) is int and 1 <= page <= len(pages) and isinstance(quote, str) and bool(quote.strip()) and normalize(quote) in normalize(pages[page - 1]["text"])
+        in_chunk = any(c["page"] == page and c["chunk_id"] == citation.get("chunk_id") and isinstance(quote, str) and normalize(quote) in normalize(c["text"]) for c in candidates)
         checks.append({"number": citation.get("number"), "valid": bool(in_page and in_chunk)})
     valid_sources = [c for c, check in zip(citations, checks) if check["valid"]]
     cited_gold = [i for i, e in enumerate(gold) if any(c["page"] == e["page"] and normalize(e["quote"]) in normalize(c["quote"]) for c in valid_sources)]
@@ -60,7 +61,7 @@ def score_case(case, response, retrieved, pages, *, history_count=None, setup_ok
             "proxy_pass": all(flags.values()), "checks": flags,
             "failed_checks": [name for name, ok in flags.items() if not ok],
             "retrieval_attempted": retrieved is not None, "gold_evidence_count": len(gold),
-            "retrieved_gold": retrieved_gold, "cited_gold": cited_gold,
+            "retrieved_gold": retrieved_gold, "retrieved_gold_at_3": retrieved_gold_at_3, "cited_gold": cited_gold,
             "quote_checks": checks, "derivation_checks": derivations, "forbidden_hits": forbidden,
             "response_sha256": digest(response), "faithfulness": None, "semantic_citation_correctness": None}
 
@@ -82,7 +83,7 @@ def summarize(rows):
         "cases": len(rows),
         "abstention_reasons": dict(Counter(r.get("abstention_reason") or "unspecified" for r in abstained)),
         "scenario_proxy_pass": rate(sum(r["proxy_pass"] for r in rows), len(rows)),
-        "retrieval_recall_at_3": rate(sum(len(r["retrieved_gold"]) for r in positive), evidence_count),
+        "retrieval_recall_at_3": rate(sum(len(r["retrieved_gold_at_3"]) for r in positive), evidence_count),
         "gold_cited_evidence_recall": rate(sum(len(r["cited_gold"]) for r in positive), evidence_count),
         "quote_integrity": rate(sum(c["valid"] for c in quotes), len(quotes)),
         "derivation_math_validity": rate(sum(check for r in rows for check in r.get("derivation_checks", [])), sum(len(r.get("derivation_checks", [])) for r in rows)),

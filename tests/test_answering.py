@@ -13,7 +13,7 @@ from fastapi.testclient import TestClient
 
 from tests.pdf_fixtures import pdf_bytes
 from tests.test_indexing import FakeEmbedder
-from web.answering import AnswerService, verify_claims
+from web.answering import AnswerService, inspect_claims, verify_claims
 from web.documents import COOKIE_NAME, DocumentError, DocumentStore
 from web.generation import OllamaGenerator, SYSTEM_PROMPT
 from web.indexing import IndexService, ChunkConfig
@@ -66,6 +66,14 @@ class CitationTests(unittest.TestCase):
                        {"text": "Garansi 99 bulan."}, {"text": "Garansi 24 bulan. [99]"}, {"quote": " "}):
             payload = {"abstain": False, "claims": [{**self.payload["claims"][0], **change}]}
             self.assertIsNone(verify_claims(payload, [self.source], "real.pdf"))
+
+    def test_wrapped_pdf_quote_is_compared_after_whitespace_normalization(self):
+        text = "Each\nemployee has an allowance."
+        source = {"source_id": "C0", "chunk_id": 0, "page": 1, "start": 0, "end": len(text), "text": text, "score": .8}
+        payload = {"abstain": False, "claims": [{"text": "Each employee has an allowance.", "source_id": "C0", "quote": "Each employee has an allowance."}]}
+        verified, reason = inspect_claims(payload, [source], "doc.pdf")
+        self.assertIsNone(reason)
+        self.assertEqual(verified["sources"][0]["quote"], "Each employee has an allowance.")
 
     def test_abstain_and_malformed_contracts_return_no_claims(self):
         for payload in (None, [], {}, {"abstain": "false", "claims": []}, {"abstain": True, "claims": []},

@@ -104,12 +104,13 @@ def is_fact_unit(text):
     if re.search(r"\.{3,}\s*\d+\s*$", stripped):
         return False
     words = re.findall(r"[^\W\d_]+", stripped)
-    if len(words) < 3:
-        return False
     # Heading words only reject short labels or numbered headings; a sentence
     # such as "Part of the training budget is reimbursed." remains evidence.
     if _HEADING.match(stripped) and (len(words) <= 4 or re.match(r"^\S+\s+\d+\b", stripped)):
         return False
+    if len(words) < 3:
+        # Short "label: value" or "label value" lines are common in tables.
+        return bool(re.search(r"\d|@|:", stripped))
     # A short line needs a number, an address, or a verb cue to look like a fact.
     # This rejects titles and labels without requiring a narrow verb allowlist
     # for full sentences.
@@ -127,20 +128,39 @@ def _sentences(text):
     return matches
 
 
+def _fit(text, limit=400):
+    """Split one long sentence into quote-sized pieces at natural boundaries."""
+    text = " ".join(text.split())
+    pieces = []
+    while len(text) > limit:
+        window = text[:limit]
+        cut = max(window.rfind(". "), window.rfind("; "), window.rfind(", "), window.rfind(" "))
+        if cut < limit // 2:
+            cut = limit
+        piece = text[:cut].strip()
+        if piece:
+            pieces.append(piece)
+        text = text[cut:].strip()
+    if text:
+        pieces.append(text)
+    return pieces
+
+
 def evidence_units(question, sources):
     required = requested_facets(question)
     units, seen = [], set()
     for source in sources:
-        for text in _sentences(source["text"]):
-            identity = (source["source_id"], text)
-            if identity in seen or not 12 <= len(text) <= 400 or not is_fact_unit(text):
-                continue
-            seen.add(identity)
-            if required and not required.intersection(unit_facets(text)):
-                continue
-            units.append({"id": f"E{len(units)}", "source_id": source["source_id"], "text": text})
-            if len(units) >= 24:
-                return units
+        for sentence in _sentences(source["text"]):
+            for text in _fit(sentence):
+                identity = (source["source_id"], text)
+                if identity in seen or not 12 <= len(text) <= 400 or not is_fact_unit(text):
+                    continue
+                seen.add(identity)
+                if required and not required.intersection(unit_facets(text)):
+                    continue
+                units.append({"id": f"E{len(units)}", "source_id": source["source_id"], "text": text})
+                if len(units) >= 24:
+                    return units
     return units
 
 
@@ -148,6 +168,7 @@ def extractive_rejection(question, claims, *, allow_conversion=False):
     if is_override_request(question):
         return "instruction_override_request"
     required = requested_facets(question)
+    question_years = set(re.findall(r"\b(?:19|20)\d{2}\b", question))
     covered = set()
     for claim in claims:
         quote = claim["quote"]
@@ -155,6 +176,10 @@ def extractive_rejection(question, claims, *, allow_conversion=False):
             return "unsupported_claim"
         if matches(r"\b(tidak (disebutkan|diberitahukan|dicantumkan|tersedia)|not (specified|stated|available|provided))\b", quote):
             return "explicit_unavailable_fact"
+        if question_years and "derivation" not in claim:
+            quote_years = set(re.findall(r"\b(?:19|20)\d{2}\b", quote))
+            if quote_years and not question_years.issubset(quote_years):
+                return "missing_requested_fact"
         covered.update(unit_facets(quote))
         if not allow_conversion and matches(r"\b(years?|tahun)\b", question) and matches(r"\b(months?|bulan)\b", quote) and not matches(r"\b(years?|tahun)\b", quote):
             return "unsupported_calculation"

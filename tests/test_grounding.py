@@ -64,6 +64,26 @@ class GroundingPolicyTests(unittest.TestCase):
                      "Tunjangan rumah 500 USD"):
             self.assertTrue(is_fact_unit(text), text)
 
+    def test_short_label_value_rows_are_fact_units(self):
+        self.assertTrue(is_fact_unit("Weight 1.2 kg."))
+        self.assertTrue(is_fact_unit("Warranty: Yes"))
+        self.assertFalse(is_fact_unit("Yes"))
+
+    def test_long_sentence_is_split_into_quote_sized_units(self):
+        text = ("Remote work policy. Employees who have completed at least six months of continuous service may request "
+                "a remote work arrangement for up to three days each week, provided that the arrangement is approved in "
+                "advance by their direct manager and does not reduce the team's ability to cover core collaboration hours "
+                "between ten and fifteen local time, and provided further that the employee maintains a secure home network "
+                "and attends all scheduled performance reviews.")
+        units = evidence_units("How many days per week can employees work remotely?", [source(text)])
+        self.assertTrue(any("three days each week" in unit["text"] for unit in units))
+        self.assertTrue(all(len(unit["text"]) <= 400 for unit in units))
+
+    def test_requested_year_must_match_a_dated_quote(self):
+        quote = "Revenue for 2025 was 12.4 million USD."
+        self.assertEqual(extractive_rejection("What was the revenue in 2026?", [{"text": quote, "quote": quote}]), "missing_requested_fact")
+        self.assertIsNone(extractive_rejection("What was the revenue in 2025?", [{"text": quote, "quote": quote}]))
+
     def test_headings_and_section_labels_are_not_fact_units(self):
         for text in ("Example policy handbook.", "Section 4: Benefits", "Chapter 3", "Ringkasan Tunjangan"):
             self.assertFalse(is_fact_unit(text), text)

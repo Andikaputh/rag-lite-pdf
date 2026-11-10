@@ -29,7 +29,7 @@ def focus_claims(question, claims):
     ignore.update({"previous", "user", "question", "topic", "topik", "pertanyaan", "pengguna", "sebelumnya"})
     wanted = concepts(question, ignore)
     scores = [len(wanted & concepts(claim["quote"], ignore)) for claim in claims]
-    if max(scores, default=0) < 2:
+    if max(scores, default=0) < 1:
         return claims  # Avoid aggressive removal for unknown/cross-language topics.
     required = requested_facets(question)
     overlaps = [wanted & concepts(claim["quote"], ignore) for claim in claims]

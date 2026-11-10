@@ -34,7 +34,7 @@ def code_digest():
     return value.hexdigest()
 
 
-def run_evaluation(*, dataset_path=DEFAULT_DATASET, split="dev", min_score=.45, indexer=None, generator=None, answer_strategy=None):
+def run_evaluation(*, dataset_path=DEFAULT_DATASET, split="dev", min_score=.35, indexer=None, generator=None, answer_strategy=None):
     if split not in ("dev", "holdout") or not 0 <= min_score <= 1:
         raise ValueError("Invalid split/threshold")
     dataset = load_dataset(dataset_path)
@@ -57,7 +57,7 @@ def run_evaluation(*, dataset_path=DEFAULT_DATASET, split="dev", min_score=.45, 
     metadata = {"schema_version": 1, "started_at": datetime.now(timezone.utc).isoformat(),
                 "dataset_version": dataset["version"], "dataset_name": Path(dataset_path).name, "dataset_sha256": dataset["sha256"],
                 "code_sha256": fingerprint, "split": split, "min_score": min_score,
-                "top_k": 3, "embedding": embedding, "generation": generation,
+                "top_k": 5, "embedding": embedding, "generation": generation,
                 "answer_strategy": answerer.answer_strategy,
                 "policy_revision": getattr(answerer.generator, "policy_revision", 1),
                 "chunking": vars(indexer.config), "protocol": "serial-local-v1", "seed": 42,
@@ -142,7 +142,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--dataset", type=Path, default=DEFAULT_DATASET)
     parser.add_argument("--split", choices=("dev", "holdout"), default="dev")
-    parser.add_argument("--min-score", type=float, default=.45)
+    parser.add_argument("--min-score", type=float, default=.35)
     parser.add_argument("--answer-strategy", choices=("legacy_v1", "extractive_v2", "focused_v3"), help="Defaults to operator policy; never changes production config")
     parser.add_argument("--out", type=Path, required=True, help="New directory; existing runs are never overwritten")
     args = parser.parse_args()

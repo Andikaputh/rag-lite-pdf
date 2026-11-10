@@ -16,7 +16,7 @@ from web.conversions import valid_derivation
 ABSTENTION = "The document does not provide enough evidence to answer this question. Try a more specific question or check the source document."
 
 
-def retrieve(path, query, *, dimensions, top_k=3, min_score=.45):
+def retrieve(path, query, *, dimensions, top_k=5, min_score=.35):
     candidates = []
     try:
         with closing(sqlite3.connect(f"{path.resolve().as_uri()}?mode=ro", uri=True)) as connection:
@@ -57,13 +57,13 @@ def inspect_claims(payload, sources, filename, *, allow_derivations=False, quest
     for claim in payload["claims"]:
         if not isinstance(claim, dict) or set(claim) not in ({"text", "source_id", "quote"}, {"text", "source_id", "quote", "derivation"}) or not all(isinstance(claim.get(k), str) for k in ("text", "source_id", "quote")):
             return None, "invalid_answer_contract"
-        text, quote = claim["text"].strip(), claim["quote"].strip()
+        text, quote = " ".join(claim["text"].split()), " ".join(claim["quote"].split())
         source = by_id.get(claim["source_id"])
         if not source:
             return None, "unknown_source"
         if not 1 <= len(text) <= 600 or not 12 <= len(quote) <= 400 or re.search(r"\[\d+\]", text):
             return None, "invalid_answer_contract"
-        if quote not in source["text"]:
+        if quote not in " ".join(source["text"].split()):
             return None, "quote_mismatch"
         # Cheap hard guard against changing a quoted amount/date. This does not
         # establish semantic support for names, units, or the complete claim.
@@ -88,7 +88,7 @@ def verify_claims(payload, sources, filename):
 
 
 class AnswerService:
-    def __init__(self, indexer, *, generator=None, timeout=120, min_score=.45, retrieval_observer=None):
+    def __init__(self, indexer, *, generator=None, timeout=120, min_score=.35, retrieval_observer=None):
         self.indexer = indexer
         self.generator = generator or OllamaGenerator()
         self.timeout, self.min_score = timeout, min_score

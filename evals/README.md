@@ -11,7 +11,7 @@ with BGE-M3 and Qwen2.5 1.5B Instruct available. No paid judge, cloud API, priva
 PDF directory, or automatic model download is used.
 
 ```powershell
-.venv\Scripts\python -m evals.run --split dev --min-score 0.45 --out evals/results/local-dev
+.venv\Scripts\python -m evals.run --split dev --min-score 0.35 --out evals/results/local-dev
 ```
 
 On Linux/macOS, use `.venv/bin/python`. Output directories must be new; previous
@@ -21,9 +21,10 @@ The runner follows `web/answer-policy.json` unless `--answer-strategy` is specif
 Use `--dataset` to select an explicitly reviewed synthetic JSON dataset. See
 `python -m evals.run --help` for options. Do not use personal data as a fixture.
 
-`datasets/rag-v5.json` adds general-domain English and Indonesian handbook cases,
-including a punctuation-free table page. It is a regression set for evidence-unit
-filtering, not a broader accuracy claim.
+`datasets/rag-v5.json` adds general-domain English and Indonesian handbook,
+research, contract, manual, finance, and long-sentence cases. It is a regression
+set for evidence-unit filtering and retrieval breadth, not a broader accuracy
+claim.
 
 For a controlled comparison, run baseline and candidate with the same dataset,
 case IDs, model digests, code fingerprint, seeds, and environment. Change only
@@ -40,7 +41,9 @@ repeat runs are needed to assess stability and timing variance.
 
 ## Metrics and interpretation
 
-- `retrieval_recall_at_3`: gold evidence found in the actual retrieved chunks.
+- `retrieval_recall_at_3`: gold evidence found in the top three retrieved chunks.
+  Answer generation may use up to five chunks; this metric keeps the earlier
+  top-three comparison basis.
 - `gold_cited_evidence_recall`: gold excerpts literally covered by cited quotes.
 - `quote_integrity`: quotes occur in the extracted page and retrieved chunk.
   This does not establish semantic entailment.

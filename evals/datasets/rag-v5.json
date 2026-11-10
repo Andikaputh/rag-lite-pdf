@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "synthetic": true,
-  "version": "5.0.0",
+  "version": "5.1.0",
   "documents": [
     {
       "id": "northwind",
@@ -26,6 +26,47 @@
         "Klaim biaya harus dikirim dalam 30 hari sejak tanggal pembelian. Struk wajib dilampirkan untuk setiap pengeluaran di atas 50 USD.",
         "Review kinerja diadakan dua kali setahun, pada bulan Juni dan Desember. Setiap karyawan memiliki anggaran pelatihan tahunan sebesar 1.200 USD.",
         "RINGKASAN TUNJANGAN\nCuti sakit 12 hari\nCuti melahirkan 16 minggu\nKeterangan tambahan tanpa tanda baca Keterangan tambahan tanpa tanda baca Keterangan tambahan tanpa tanda baca Keterangan tambahan tanpa tanda baca Keterangan tambahan tanpa tanda baca Keterangan tambahan tanpa tanda baca Keterangan tambahan tanpa tanda baca Keterangan tambahan tanpa tanda baca Keterangan tambahan tanpa tanda baca Keterangan tambahan tanpa tanda baca Keterangan tambahan tanpa tanda baca Keterangan tambahan tanpa tanda baca Keterangan tambahan tanpa tanda baca Keterangan tambahan tanpa tanda baca "
+      ]
+    },
+    {
+      "id": "research",
+      "pages": [
+        "Journal of Cognitive Science. Volume 12. Abstract. The study examines the relationship between sleep duration and memory consolidation in healthy adults.",
+        "Methods. We recruited 120 participants and recorded sleep with wrist actigraphy for 14 consecutive nights.",
+        "Results. The study found that sleep improves memory consolidation in healthy adults. Participants who slept more than seven hours recalled 23 percent more words.",
+        "Discussion. These findings suggest that sleep duration is associated with memory performance. The authors note that the sample was limited to adults aged 20 to 40.",
+        "References. Smith et al. 2021. Sleep and memory. Journal of Sleep Research."
+      ]
+    },
+    {
+      "id": "contract",
+      "pages": [
+        "Service Agreement. This agreement is between Northwind Ltd and the client.",
+        "Term and termination. Either party may terminate this agreement with 30 days written notice. The client must pay all outstanding invoices before termination.",
+        "Confidentiality. Each party must keep the other party's confidential information secret for five years after termination.",
+        "Liability. The supplier's total liability is limited to the fees paid in the previous 12 months."
+      ]
+    },
+    {
+      "id": "manual",
+      "pages": [
+        "Device specifications. Operating temperature range 0 to 45 C. Storage temperature range -20 to 60 C. Weight 1.2 kg. Battery life 12 hours.",
+        "Safety. Do not operate the device above 45 C. Keep the device away from water.",
+        "Warranty. The device warranty lasts 24 months. Water damage is not covered by the warranty."
+      ]
+    },
+    {
+      "id": "finance",
+      "pages": [
+        "Annual Report 2025. Revenue for 2025 was 12.4 million USD, up 18 percent from 2024.",
+        "Operating expenses were 8.1 million USD. Net income was 2.3 million USD.",
+        "The company employed 240 people at the end of 2025. The board recommends a dividend of 0.15 USD per share."
+      ]
+    },
+    {
+      "id": "remote",
+      "pages": [
+        "Remote work policy. Employees who have completed at least six months of continuous service may request a remote work arrangement for up to three days each week, provided that the arrangement is approved in advance by their direct manager and does not reduce the team's ability to cover core collaboration hours between ten and fifteen local time, and provided further that the employee maintains a secure home network and attends all scheduled performance reviews."
       ]
     }
   ],
@@ -289,6 +330,217 @@
       "expected_status": "abstained",
       "evidence": [],
       "contains_any": []
+    },
+    {
+      "id": "dev-en-research-find",
+      "split": "dev",
+      "document": "research",
+      "language": "en",
+      "tags": [
+        "fact",
+        "research",
+        "general_domain"
+      ],
+      "question": "What did the study find about sleep and memory?",
+      "expected_status": "answered",
+      "evidence": [
+        {
+          "page": 3,
+          "quote": "The study found that sleep improves memory consolidation in healthy adults."
+        }
+      ],
+      "contains_any": [
+        [
+          "sleep"
+        ],
+        [
+          "memory"
+        ]
+      ]
+    },
+    {
+      "id": "dev-en-research-limit",
+      "split": "dev",
+      "document": "research",
+      "language": "en",
+      "tags": [
+        "fact",
+        "research",
+        "paraphrase",
+        "general_domain"
+      ],
+      "question": "What was the sample limitation?",
+      "expected_status": "answered",
+      "evidence": [
+        {
+          "page": 4,
+          "quote": "The authors note that the sample was limited to adults aged 20 to 40."
+        }
+      ],
+      "contains_any": [
+        [
+          "sample"
+        ],
+        [
+          "limited",
+          "20"
+        ]
+      ]
+    },
+    {
+      "id": "dev-en-contract-notice",
+      "split": "dev",
+      "document": "contract",
+      "language": "en",
+      "tags": [
+        "fact",
+        "contract",
+        "general_domain"
+      ],
+      "question": "What is the notice period for termination?",
+      "expected_status": "answered",
+      "evidence": [
+        {
+          "page": 2,
+          "quote": "Either party may terminate this agreement with 30 days written notice."
+        }
+      ],
+      "contains_any": [
+        [
+          "30"
+        ],
+        [
+          "notice"
+        ]
+      ]
+    },
+    {
+      "id": "dev-en-manual-weight",
+      "split": "dev",
+      "document": "manual",
+      "language": "en",
+      "tags": [
+        "fact",
+        "table",
+        "manual",
+        "general_domain"
+      ],
+      "question": "What is the weight?",
+      "expected_status": "answered",
+      "evidence": [
+        {
+          "page": 1,
+          "quote": "Weight 1.2 kg."
+        }
+      ],
+      "contains_any": [
+        [
+          "1.2"
+        ],
+        [
+          "kg"
+        ]
+      ]
+    },
+    {
+      "id": "dev-en-manual-water",
+      "split": "dev",
+      "document": "manual",
+      "language": "en",
+      "tags": [
+        "negative",
+        "manual",
+        "general_domain"
+      ],
+      "question": "Is water damage covered?",
+      "expected_status": "answered",
+      "evidence": [
+        {
+          "page": 3,
+          "quote": "Water damage is not covered by the warranty."
+        }
+      ],
+      "contains_any": [
+        [
+          "water"
+        ],
+        [
+          "not",
+          "tidak"
+        ]
+      ]
+    },
+    {
+      "id": "dev-en-finance-revenue",
+      "split": "dev",
+      "document": "finance",
+      "language": "en",
+      "tags": [
+        "fact",
+        "number",
+        "finance",
+        "general_domain"
+      ],
+      "question": "What was the revenue in 2025?",
+      "expected_status": "answered",
+      "evidence": [
+        {
+          "page": 1,
+          "quote": "Revenue for 2025 was 12.4 million USD, up 18 percent from 2024."
+        }
+      ],
+      "contains_any": [
+        [
+          "12.4"
+        ],
+        [
+          "revenue"
+        ]
+      ]
+    },
+    {
+      "id": "dev-en-finance-absent-year",
+      "split": "dev",
+      "document": "finance",
+      "language": "en",
+      "tags": [
+        "absent",
+        "finance",
+        "general_domain"
+      ],
+      "question": "What was the revenue in 2026?",
+      "expected_status": "abstained",
+      "evidence": [],
+      "contains_any": []
+    },
+    {
+      "id": "dev-en-long-remote",
+      "split": "dev",
+      "document": "remote",
+      "language": "en",
+      "tags": [
+        "fact",
+        "long_sentence",
+        "general_domain"
+      ],
+      "question": "How many days per week can employees work remotely?",
+      "expected_status": "answered",
+      "evidence": [
+        {
+          "page": 1,
+          "quote": "up to three days each week"
+        }
+      ],
+      "contains_any": [
+        [
+          "three",
+          "3"
+        ],
+        [
+          "days",
+          "day"
+        ]
+      ]
     }
   ]
 }

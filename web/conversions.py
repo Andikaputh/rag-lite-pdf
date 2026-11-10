@@ -67,7 +67,9 @@ def derive_duration(question, claims):
         return claims, None  # Separate literal facts requested in their original units.
     if not source_quantities:
         quoted_units = {UNITS[m.group().casefold()] for claim in claims for m in re.finditer(rf"\b(?:{UNIT_PATTERN})\b", claim["quote"], re.I)}
-        return (None, "ambiguous_conversion") if quoted_units - {target} else (claims, None)
+        if target in quoted_units:
+            return claims, None
+        return (None, "ambiguous_conversion") if quoted_units else (claims, None)
     if all(unit == target for _, unit in source_quantities):
         return claims, None
     if len(claims) != 1 or len(source_quantities) != 1:
