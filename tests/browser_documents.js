@@ -21,7 +21,7 @@ async (page) => {
     await page.reload();
     await page.locator("#document-details").waitFor({ state: "visible" });
     await page.locator("#pdf-input").setInputFiles(".tools/blank.pdf");
-    await page.locator("#document-feedback.is-error").filter({ hasText: "OCR" }).waitFor();
+    await page.locator("#document-feedback.is-error").filter({ hasText: "no readable text" }).waitFor();
     assert(await page.locator("#document-name").textContent() === "valid.pdf", "Failed replacement did not retain old document");
     assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `Overflow at ${width}`);
     await page.screenshot({ path: `.tools/document-${width}.png`, fullPage: true });

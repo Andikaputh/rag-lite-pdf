@@ -17,6 +17,23 @@ On Linux/macOS, use `.venv/bin/python`. Keep a single worker. Sessions,
 conversation revisions, rate limits, and inference coordination are process-local.
 Adding workers does not provide supported horizontal scaling.
 
+### Optional local OCR
+
+Text-based PDFs need only the core lockfile. For scanned or image-only pages,
+install the pinned OCR extra:
+
+```powershell
+.venv\Scripts\python -m pip install -r requirements-ocr.lock.txt
+.venv\Scripts\python -m pip check
+```
+
+RapidOCR and pypdfium2 run locally on the CPU and need no external OCR binary.
+The parser subprocess OCRs up to 25 image pages per document and uses a separate
+180-second timeout. Text PDFs keep the 20-second parse timeout. Tesseract is an
+optional alternative when RapidOCR is not installed: install `pytesseract` and
+the Tesseract binary, then set `TESSERACT_CMD` if the binary is not on `PATH`.
+The application never sends documents to an OCR service.
+
 ## Health and model readiness
 
 `GET /api/health` returns process status and `uptime_s`. It deliberately does
@@ -38,6 +55,8 @@ cached state; rebuild the index when instructed.
 
 - One active document per session, up to 10 MiB, 100 pages, and 1 million
   extracted characters.
+- OCR is optional and limited to 25 image pages per document with a 180-second
+  timeout. Larger scans must be split.
 - At most 50 sessions and two PDF parser subprocesses.
 - One shared local-inference slot. A busy session returns HTTP 409; exhausted
   model capacity returns HTTP 503 rather than queuing unbounded work.
@@ -52,8 +71,8 @@ Minimum inference RAM, sustained concurrency, and uptime have not been certified
 ## Data lifecycle
 
 Runtime data is stored beneath `.data/`, outside the static directory and excluded
-from Git. Documents, extracted text, and indexes are session-private. Deleting
-or replacing a document removes its associated stored data.
+from Git. Documents, extracted text including OCR output, and indexes are
+session-private. Deleting or replacing a document removes its associated stored data.
 
 Sessions expire after one hour of inactivity and are not restored after a server
 restart. Expiry cleanup is request-driven, not a background deletion deadline.

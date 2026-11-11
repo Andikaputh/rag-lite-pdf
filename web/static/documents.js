@@ -45,8 +45,14 @@
       byId("document-pages").textContent = document.page_count.toLocaleString("en-US");
       byId("document-size").textContent = `${(document.size_bytes / 1024).toLocaleString("en-US", { maximumFractionDigits: 1 })} KiB`;
       byId("document-characters").textContent = document.text_characters.toLocaleString("en-US");
-      byId("document-warning").hidden = !document.empty_pages;
-      byId("document-warning").textContent = `${document.empty_pages} pages without text skipped; OCR is not available.`;
+      const empty = document.empty_pages;
+      const noun = empty === 1 ? "page" : "pages";
+      const verb = empty === 1 ? "has" : "have";
+      const be = empty === 1 ? "was" : "were";
+      byId("document-warning").hidden = !empty;
+      byId("document-warning").textContent = !empty ? "" : document.ocr_engine
+        ? `${empty} ${noun} still ${verb} no readable text after OCR. Review the cited pages.`
+        : `${empty} ${noun} without text ${be} skipped.`;
       const labels = { not_indexed: "Not indexed", indexing: "Building index…", ready: "Index ready", failed: "Index failed" };
       byId("index-status").textContent = labels[index.status] || "Not indexed";
       byId("index-status").dataset.state = index.status;

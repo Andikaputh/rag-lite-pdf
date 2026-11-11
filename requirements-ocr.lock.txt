@@ -1,0 +1,17 @@
+# Optional OCR extra. Install alongside requirements.lock.txt.
+# Generated from the resolved Python 3.14 environment; no model download is needed.
+colorama==0.4.6
+flatbuffers==25.12.19
+numpy==2.5.4
+onnxruntime==1.31.1
+opencv-python==5.0.0.93
+packaging==26.3
+pillow==13.0.0
+protobuf==7.36.2
+pyclipper==1.4.0
+pypdfium2==5.15.2
+pyyaml==6.0.3
+rapidocr-onnxruntime==1.4.4
+shapely==2.2.0
+six==1.17.0
+tqdm==4.70.1

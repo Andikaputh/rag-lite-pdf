@@ -12,6 +12,14 @@ The suite uses temporary synthetic PDFs and test doubles for model calls.
 It does not need Ollama or an external inference service. On Linux/macOS,
 replace `.venv\Scripts\python` with `.venv/bin/python`.
 
+The OCR tests are opt-in by dependency. Install `requirements-ocr.lock.txt` to
+run the real image-only PDF checks; without it, those tests are skipped. The
+focused OCR suite is:
+
+```powershell
+.venv\Scripts\python -m unittest tests.test_ocr -v
+```
+
 ## Local model checks
 
 Start Ollama and install both models from the main README. Each module below

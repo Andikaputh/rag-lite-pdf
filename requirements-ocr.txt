@@ -1,0 +1,6 @@
+# Optional local OCR for scanned PDFs. Install with requirements.lock.txt.
+# RapidOCR runs on CPU through ONNX Runtime and needs no external OCR binary.
+pypdfium2==5.15.2
+Pillow==13.0.0
+rapidocr-onnxruntime==1.4.4
+onnxruntime==1.31.1

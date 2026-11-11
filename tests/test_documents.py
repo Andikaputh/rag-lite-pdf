@@ -1,3 +1,4 @@
+import json
 import subprocess
 import tempfile
 import unittest
@@ -6,9 +7,10 @@ from unittest.mock import patch
 
 from fastapi.testclient import TestClient
 
-from tests.pdf_fixtures import pdf_bytes
+from tests.pdf_fixtures import pdf_bytes, scanned_pdf_bytes
 from web.documents import COOKIE_NAME, DocumentStore
 from web.main import create_app
+from web.ocr import available as ocr_available
 
 
 class DocumentGatewayTests(unittest.TestCase):
@@ -61,10 +63,23 @@ class DocumentGatewayTests(unittest.TestCase):
     def test_encrypted_pdf_rejected(self):
         self.assert_error(self.upload(pdf_bytes(encrypted=True)), "encrypted_pdf")
 
-    def test_blank_or_scanned_pdf_reports_ocr_unavailable(self):
+    def test_blank_pdf_reports_no_text(self):
         response = self.upload(pdf_bytes(text=""))
         self.assert_error(response, "no_text")
-        self.assertIn("OCR", response.json()["error"]["message"])
+        self.assertIn("no readable text", response.json()["error"]["message"])
+
+    @unittest.skipUnless(ocr_available(), "optional OCR dependencies are not installed")
+    def test_scanned_pdf_is_read_with_local_ocr(self):
+        response = self.upload(scanned_pdf_bytes())
+        self.assertEqual(response.status_code, 201, response.text)
+        doc = response.json()["document"]
+        self.assertGreaterEqual(doc["ocr_pages"], 1)
+        self.assertIn(doc["ocr_engine"], {"rapidocr", "tesseract"})
+        self.assertGreater(doc["text_characters"], 0)
+        session = self.store.sessions[self.client.cookies.get(COOKIE_NAME)]
+        folder = self.store.root / session.token / doc["id"]
+        pages = json.loads((folder / "pages.json").read_text(encoding="utf-8"))
+        self.assertIn("allowance", pages[0]["text"].lower())
 
     def test_zero_pages_rejected(self):
         self.assert_error(self.upload(pdf_bytes(pages=0)), "empty_pdf")
@@ -147,6 +162,27 @@ class DocumentGatewayTests(unittest.TestCase):
         self.assertEqual(list(self.store.root.rglob("incoming.pdf")), [])
         self.assertFalse(next(iter(self.store.sessions.values())).busy)
         self.assertEqual(self.upload().status_code, 201)
+
+    def test_ocr_required_retries_with_ocr_flag(self):
+        with tempfile.NamedTemporaryFile(dir=self.store.root, suffix=".pdf") as source:
+            path = Path(source.name)
+            first = subprocess.CompletedProcess([], 0, stdout=json.dumps({"ocr_required": True}).encode())
+            second = subprocess.CompletedProcess([], 0, stdout=json.dumps({
+                "page_count": 1, "text_characters": 5, "empty_pages": 0,
+                "ocr_pages": 1, "ocr_engine": "rapidocr",
+                "pages": [{"page": 1, "text": "hello", "ocr": True}],
+            }).encode())
+            with patch("web.documents.subprocess.run", side_effect=[first, second]) as run:
+                data = self.store.validate(path)
+        self.assertEqual(data["ocr_pages"], 1)
+        self.assertEqual(run.call_count, 2)
+        self.assertNotIn("--ocr", run.call_args_list[0].args[0])
+        self.assertIn("--ocr", run.call_args_list[1].args[0])
+
+    def test_ocr_timeout_is_reported_separately(self):
+        first = subprocess.CompletedProcess([], 0, stdout=b'{"ocr_required": true}')
+        with patch("web.documents.subprocess.run", side_effect=[first, subprocess.TimeoutExpired("worker", 180)]):
+            self.assert_error(self.upload(), "ocr_timeout")
 
     def test_busy_session_and_parser_capacity_are_bounded(self):
         session = next(iter(self.store.sessions.values()))

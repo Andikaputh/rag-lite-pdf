@@ -34,7 +34,8 @@ def current_document(request: Request):
     session = store.get_session(request.cookies.get(COOKIE_NAME), create=True)
     response = JSONResponse({
         "document": session.document, "processing": session.busy, "csrf_token": session.csrf,
-        "limits": {"max_bytes": store.max_bytes, "max_pages": store.max_pages, "session_ttl_seconds": store.ttl},
+        "limits": {"max_bytes": store.max_bytes, "max_pages": store.max_pages,
+                   "max_ocr_pages": store.max_ocr_pages, "session_ttl_seconds": store.ttl},
     })
     response.set_cookie(COOKIE_NAME, session.token, httponly=True, samesite="strict",
                         secure=request.url.scheme == "https", max_age=store.ttl)

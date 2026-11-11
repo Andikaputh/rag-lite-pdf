@@ -12,13 +12,15 @@ validated for production use. See [limitations](#limitations).
 
 ## Features
 
-- Upload one text-based PDF per session and build a local search index.
+- Upload one PDF per session and build a local search index.
+- Read text-based PDFs out of the box, or enable optional local OCR for scanned pages.
 - Ask follow-up questions with bounded conversation history.
 - Inspect source quotes and page references alongside answers.
 - Receive an explicit refusal when retrieved evidence is insufficient.
 - Replace or delete a document and its associated text and index.
 
-Scanned PDFs without text, encrypted documents, and OCR are not supported.
+Text-based PDFs need no extra tools. Scanned PDFs need the optional OCR extra
+described in [Installation](#installation). Encrypted documents are not supported.
 
 ## Requirements
 
@@ -40,6 +42,23 @@ python -m venv .venv
 .venv\Scripts\python -m pip install -r requirements.lock.txt
 .venv\Scripts\python -m pip check
 ```
+
+### Optional local OCR
+
+Text-based PDFs work with the core install. To read scanned or image-only
+pages, install the pinned OCR extra. RapidOCR and pypdfium2 run locally on the
+CPU, need no external OCR binary, and do not send documents to a service.
+
+```powershell
+.venv\Scripts\python -m pip install -r requirements-ocr.lock.txt
+.venv\Scripts\python -m pip check
+```
+
+The first OCR upload initializes the local OCR engine and may take a few
+seconds. The application OCRs up to 25 image pages per document and applies a
+separate 180-second OCR timeout. Tesseract is an optional alternative when
+RapidOCR is not installed: install `pytesseract` and the Tesseract binary, then
+set `TESSERACT_CMD` if the binary is not on `PATH`.
 
 With Ollama running, download the models:
 
@@ -78,7 +97,7 @@ are ready. Model availability is checked when an operation needs them.
 
 ## Usage
 
-1. Upload a text-based PDF.
+1. Upload a PDF. Scanned PDFs need the OCR extra.
 2. Build its index and wait for completion.
 3. Ask a question about the document.
 4. Open a citation number to inspect the source passage.
@@ -90,6 +109,7 @@ answer correct; review the sources before relying on it.
 | Resource | Limit |
 | --- | --- |
 | Upload | 10 MiB, 100 pages, 1 million text characters |
+| OCR | Up to 25 image pages per document, 180-second timeout |
 | Question | 1 to 1,500 characters |
 | Chat requests | 30 per 60 seconds per session |
 | Conversation history | Up to 6 turns and 48 KiB per session |
@@ -98,9 +118,11 @@ answer correct; review the sources before relying on it.
 ## Architecture
 
 FastAPI serves Jinja2 templates and plain JavaScript/CSS. Text is extracted
-per page, split into chunks, and embedded with BGE-M3. Each document has a
-SQLite vector index. Questions retrieve relevant passages before generation;
-the resulting claims and citations are checked against retrieved evidence.
+per page; image-only pages can use optional local OCR in the bounded parser
+subprocess. Text is split into chunks and embedded with BGE-M3. Each document
+has a SQLite vector index. Questions retrieve relevant passages before
+generation; the resulting claims and citations are checked against retrieved
+evidence.
 
 | Path | Contents |
 | --- | --- |
@@ -141,7 +163,10 @@ handling; it is not interface copy.
 
 - No built-in user accounts or authentication. Do not expose the application
   port directly to a public network.
-- No OS-level sandbox for PDF parsing, durable multi-worker sessions, or OCR.
+- No OS-level sandbox for PDF parsing or OCR, and no durable multi-worker
+  sessions.
+- OCR can misread characters, especially numbers, handwriting, and low-quality
+  scans. Review the cited page before relying on an answer.
 - No independent human validation of answer quality. Synthetic test results
   are not general accuracy guarantees.
 - No uptime or multi-user capacity guarantee. Model operations share one slot.

@@ -17,6 +17,8 @@ from web.conversations import Conversation
 MAX_BYTES = 10 * 1024 * 1024
 MAX_PAGES = 100
 MAX_CHARS = 1_000_000
+MAX_OCR_PAGES = 25
+OCR_TIMEOUT = 180
 COOKIE_NAME = "folio_session"
 
 
@@ -45,12 +47,13 @@ class DocumentStore:
     """
     def __init__(self, data_dir: Path, *, max_bytes=MAX_BYTES, max_pages=MAX_PAGES,
                  max_chars=MAX_CHARS, ttl=3600, max_sessions=50, max_parsers=2,
-                 parse_timeout=20):
+                 parse_timeout=20, ocr_timeout=OCR_TIMEOUT, max_ocr_pages=MAX_OCR_PAGES):
         data_dir.mkdir(parents=True, exist_ok=True)
         self._temporary = tempfile.TemporaryDirectory(prefix="folio-", dir=data_dir)
         self.root = Path(self._temporary.name)
         self.max_bytes, self.max_pages, self.max_chars = max_bytes, max_pages, max_chars
         self.ttl, self.max_sessions, self.parse_timeout = ttl, max_sessions, parse_timeout
+        self.ocr_timeout, self.max_ocr_pages = ocr_timeout, max_ocr_pages
         self.sessions: dict[str, Session] = {}
         self.lock = threading.RLock()
         self.parsers = threading.BoundedSemaphore(max_parsers)
@@ -103,15 +106,28 @@ class DocumentStore:
 
         Only a server-generated path and numeric limits reach the worker. Never
         feed uploaded filenames to a shell, command line, or filesystem path.
+        Text extraction keeps the short timeout. A PDF that reports OCR pages
+        gets one retry with the longer OCR timeout.
         """
+        data = self._parse_once(path, ocr=False, timeout=self.parse_timeout)
+        if data.get("ocr_required"):
+            data = self._parse_once(path, ocr=True, timeout=self.ocr_timeout)
+        return data
+
+    def _parse_once(self, path: Path, *, ocr: bool, timeout: int) -> dict:
+        command = [sys.executable, "-m", "web.pdf_worker", str(path.resolve()),
+                   str(self.max_pages), str(self.max_chars),
+                   "--max-ocr-pages", str(self.max_ocr_pages)]
+        if ocr:
+            command.append("--ocr")
         try:
             result = subprocess.run(
-                [sys.executable, "-m", "web.pdf_worker", str(path.resolve()),
-                 str(self.max_pages), str(self.max_chars)],
-                cwd=Path(__file__).resolve().parent.parent, capture_output=True,
-                timeout=self.parse_timeout, check=False,
+                command, cwd=Path(__file__).resolve().parent.parent, capture_output=True,
+                timeout=timeout, check=False,
             )
         except subprocess.TimeoutExpired:
+            if ocr:
+                raise DocumentError("ocr_timeout", "OCR timed out. Try a smaller or clearer scanned PDF.", 422) from None
             raise DocumentError("parse_timeout", "PDF parsing timed out. Try a simpler PDF.", 422) from None
         if result.returncode != 0:
             raise DocumentError("parser_failed", "The PDF could not be processed safely. Try another file.")
@@ -143,6 +159,7 @@ class DocumentStore:
                     "id": document_id, "name": name, "size_bytes": size,
                     "page_count": parsed["page_count"], "text_characters": parsed["text_characters"],
                     "empty_pages": parsed["empty_pages"], "status": "validated",
+                    "ocr_pages": parsed.get("ocr_pages", 0), "ocr_engine": parsed.get("ocr_engine"),
                     "sha256": pdf_sha256,
                 }
                 old = session.document
