@@ -32,7 +32,8 @@ The parser subprocess OCRs up to 25 image pages per document and uses a separate
 180-second timeout. Text PDFs keep the 20-second parse timeout. Tesseract is an
 optional alternative when RapidOCR is not installed: install `pytesseract` and
 the Tesseract binary, then set `TESSERACT_CMD` if the binary is not on `PATH`.
-The application never sends documents to an OCR service.
+The application never sends documents to an OCR service. On headless Linux,
+OpenCV may require the system `libGL` package.
 
 ## Health and model readiness
 
