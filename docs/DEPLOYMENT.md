@@ -29,11 +29,15 @@ install the pinned OCR extra:
 
 RapidOCR and pypdfium2 run locally on the CPU and need no external OCR binary.
 The parser subprocess OCRs up to 25 image pages per document and uses a separate
-180-second timeout. Text PDFs keep the 20-second parse timeout. Tesseract is an
-optional alternative when RapidOCR is not installed: install `pytesseract` and
-the Tesseract binary, then set `TESSERACT_CMD` if the binary is not on `PATH`.
-The application never sends documents to an OCR service. On headless Linux,
-OpenCV may require the system `libGL` package.
+180-second timeout. Text PDFs keep the 20-second parse timeout. Pages render at
+4x by default, up to 5x for higher-resolution scans, with a 4000-pixel side cap.
+OCR only runs on pages that contain an image and have little or no extractable
+text. Higher-resolution rendering increases CPU and memory use; keep parser
+concurrency bounded. Tesseract is an optional fallback when RapidOCR is
+unavailable or cannot start: install `pytesseract` and the Tesseract binary,
+then set `TESSERACT_CMD` if the binary is not on `PATH`. The application never
+sends documents to an OCR service. On headless Linux, OpenCV may require the
+system `libGL` package.
 
 ## Health and model readiness
 

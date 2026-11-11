@@ -56,9 +56,14 @@ CPU, need no external OCR binary, and do not send documents to a service.
 
 The first OCR upload initializes the local OCR engine and may take a few
 seconds. The application OCRs up to 25 image pages per document and applies a
-separate 180-second OCR timeout. Tesseract is an optional alternative when
-RapidOCR is not installed: install `pytesseract` and the Tesseract binary, then
-set `TESSERACT_CMD` if the binary is not on `PATH`.
+separate 180-second OCR timeout. OCR runs only on pages that contain an image
+and have little or no extractable text; text pages keep the fast extraction
+path. Pages render at up to about 288 DPI by default, up to 360 DPI for
+higher-resolution scans, with a 4000-pixel side cap. Higher-resolution
+rendering uses more CPU and memory than the text path. Tesseract is an optional
+fallback when RapidOCR is unavailable or cannot start: install `pytesseract`
+and the Tesseract binary, then set `TESSERACT_CMD` if the binary is not on
+`PATH`.
 
 With Ollama running, download the models:
 

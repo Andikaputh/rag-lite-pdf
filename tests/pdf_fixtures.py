@@ -44,14 +44,41 @@ def _fixture_font(size):
     return ImageFont.load_default(size=size)
 
 
-def scanned_pdf_bytes(text="The home office allowance is 500 USD per year.", *, width=2200, height=1400):
+def scanned_pdf_bytes(text="The home office allowance is 500 USD per year.", *, width=2200, height=1400,
+                      font_size=64, contrast=1.0, blur=0.0, noise=0):
     """Create an image-only PDF. Pillow is optional; callers skip when missing."""
-    from PIL import Image, ImageDraw
+    from PIL import Image, ImageDraw, ImageEnhance, ImageFilter
     image = Image.new("RGB", (width, height), "white")
     draw = ImageDraw.Draw(image)
-    font = _fixture_font(64)
+    font = _fixture_font(font_size)
     draw.text((120, 160), "SCANNED DOCUMENT", fill="black", font=font)
-    draw.text((120, 320), text, fill="black", font=font)
+    draw.text((120, 160 + font_size + 40), text, fill="black", font=font)
+    if contrast != 1.0:
+        image = ImageEnhance.Contrast(image).enhance(contrast)
+    if blur:
+        image = image.filter(ImageFilter.GaussianBlur(blur))
+    if noise:
+        import random
+        rng = random.Random(7)
+        pixels = image.load()
+        for _ in range(noise):
+            x = rng.randrange(width)
+            y = rng.randrange(height)
+            value = rng.randrange(0, 256)
+            pixels[x, y] = (value, value, value)
     output = BytesIO()
     image.save(output, format="PDF", resolution=150)
+    return output.getvalue()
+
+
+def mixed_pdf_bytes(text="Text page content.", scan_text="The home office allowance is 500 USD per year."):
+    """Create a PDF with one text page and one image-only page."""
+    from pypdf import PdfReader
+    text_reader = PdfReader(BytesIO(pdf_bytes(text)))
+    scan_reader = PdfReader(BytesIO(scanned_pdf_bytes(scan_text)))
+    writer = PdfWriter()
+    writer.add_page(text_reader.pages[0])
+    writer.add_page(scan_reader.pages[0])
+    output = BytesIO()
+    writer.write(output)
     return output.getvalue()

@@ -16,6 +16,7 @@ async (page) => {
     await page.locator("#document-details").waitFor({ state: "visible" });
     assert(await page.locator("#document-name").textContent() === "valid.pdf", "Wrong filename");
     assert(await page.locator("#document-pages").textContent() === "2", "Wrong page count");
+    assert(await page.locator("#document-ocr").textContent() === "Not used", "Unexpected OCR status");
     assert(await page.locator("#question").isDisabled(), "Validated is not RAG ready");
     assert(await page.locator("#document-warning").isVisible(), "Partial empty-page warning missing");
     await page.reload();

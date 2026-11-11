@@ -45,6 +45,14 @@
       byId("document-pages").textContent = document.page_count.toLocaleString("en-US");
       byId("document-size").textContent = `${(document.size_bytes / 1024).toLocaleString("en-US", { maximumFractionDigits: 1 })} KiB`;
       byId("document-characters").textContent = document.text_characters.toLocaleString("en-US");
+      const ocrPages = document.ocr_pages || 0;
+      const ocrNames = { rapidocr: "RapidOCR", tesseract: "Tesseract" };
+      const ocrField = byId("document-ocr");
+      if (ocrField) {
+        ocrField.textContent = ocrPages
+          ? `${ocrPages} ${ocrPages === 1 ? "page" : "pages"} (${ocrNames[document.ocr_engine] || document.ocr_engine || "local"})`
+          : "Not used";
+      }
       const empty = document.empty_pages;
       const noun = empty === 1 ? "page" : "pages";
       const verb = empty === 1 ? "has" : "have";
@@ -130,13 +138,15 @@
     }
     busy = true;
     controls();
-    message("Uploading and validating the PDF… keep this page open.");
+    message("Uploading and reading the PDF. Scanned pages may take longer while OCR runs. Keep this page open.");
     try {
       const data = await request("/api/documents", {
         method: "POST", headers: { "Content-Type": "application/pdf", "X-File-Name": encodeURIComponent(file.name), "X-CSRF-Token": csrf }, body: file,
       });
       render(data.document);
-      message("PDF validated. Build its local index before asking questions.");
+      message(data.document.ocr_pages
+        ? `PDF validated with OCR on ${data.document.ocr_pages} ${data.document.ocr_pages === 1 ? "page" : "pages"}. Build its local index before asking questions.`
+        : "PDF validated. Build its local index before asking questions.");
     } catch (error) {
       // An interrupted response can hide a completed upload. Reconcile with the
       // server rather than asserting that the old document is definitely active.

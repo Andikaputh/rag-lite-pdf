@@ -20,6 +20,10 @@ focused OCR suite is:
 .venv\Scripts\python -m unittest tests.test_ocr -v
 ```
 
+The focused suite covers page selection, engine fallback, render scaling, small
+text, low contrast, blur, mixed text and scanned pages, page caps, and OCR
+failure paths.
+
 ## Local model checks
 
 Start Ollama and install both models from the main README. Each module below

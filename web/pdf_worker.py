@@ -12,22 +12,39 @@ from web.ocr import needs_ocr
 logging.getLogger("pypdf").setLevel(logging.CRITICAL)
 
 
-def page_has_image(page) -> bool:
-    """Check for an image XObject without decoding image data."""
+def page_images(page):
+    """Return image XObject dimensions without decoding image data."""
     try:
         resources = page.get("/Resources")
         if not resources:
-            return False
+            return []
         xobjects = resources.get("/XObject")
         if not xobjects:
-            return False
+            return []
+        images = []
         for item in xobjects.values():
             candidate = item.get_object()
-            if candidate.get("/Subtype") == "/Image":
-                return True
+            if candidate.get("/Subtype") != "/Image":
+                continue
+            width = float(candidate.get("/Width", 0) or 0)
+            height = float(candidate.get("/Height", 0) or 0)
+            if width > 0 and height > 0:
+                images.append((width, height))
+        return images
     except Exception:
-        return False
-    return False
+        return []
+
+
+def page_native_scale(page, images) -> float:
+    """Estimate the scan DPI as a PDF render scale multiplier."""
+    try:
+        width_pt = float(page.mediabox.width)
+        height_pt = float(page.mediabox.height)
+    except Exception:
+        return 0.0
+    if width_pt <= 0 or height_pt <= 0:
+        return 0.0
+    return max((max(width / width_pt, height / height_pt) for width, height in images), default=0.0)
 
 
 def parse_pdf(path: Path, max_pages: int, max_chars: int, *, ocr: bool = False,
@@ -50,6 +67,7 @@ def parse_pdf(path: Path, max_pages: int, max_chars: int, *, ocr: bool = False,
                 return error("too_many_pages", f"PDFs may contain up to {max_pages} pages. Split the document and try again.")
             pages, characters, empty_pages = [], 0, 0
             ocr_needed = []
+            native_scales = {}
             for number, page in enumerate(reader.pages, start=1):
                 text = (page.extract_text() or "").strip()
                 characters += len(text)
@@ -57,8 +75,11 @@ def parse_pdf(path: Path, max_pages: int, max_chars: int, *, ocr: bool = False,
                     return error("too_much_text", "The PDF contains too much text. Split it into smaller documents.")
                 empty_pages += not bool(text)
                 pages.append({"page": number, "text": text})
-                if needs_ocr(text, page_has_image(page)):
+                images = page_images(page)
+                if needs_ocr(text, bool(images)):
                     ocr_needed.append(number)
+                    if ocr:
+                        native_scales[number] = page_native_scale(page, images)
     except Exception:
         # Do not return internal paths, parser traces, or document text in errors.
         return error("corrupt_pdf", "The PDF is corrupt or uses an unsupported structure. Export it again and retry.")
@@ -85,7 +106,7 @@ def parse_pdf(path: Path, max_pages: int, max_chars: int, *, ocr: bool = False,
             return error("too_many_ocr_pages", too_many)
         try:
             from web.ocr import OcrError, OcrUnavailable, engine_name, ocr_pages
-            texts = ocr_pages(path, ocr_needed)
+            texts = ocr_pages(path, ocr_needed, native_scales)
         except OcrUnavailable:
             if not characters:
                 return error("no_text", "The PDF has no readable text and may be scanned. Install the optional OCR dependencies to read it.")
